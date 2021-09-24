@@ -1,42 +1,77 @@
-// Use local .env file for env vars when not deployed
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
+const express = require('express')
+const app = express()
+const bodyparser = require('body-parser')
+const mongoose = require('mongoose')
+var multer = require('multer');
+fs = require('fs');
+const path = require('path');
 
-const aws = require('aws-sdk')
-const multer = require('multer')
-const multerS3 = require('multer-s3')
+// app.use(bodyParser.json())
+const mongouri = "mongodb+srv://msritop123:msritop123@rit-dataset.ypq0r.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 
-const s3 = new aws.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: "us-east-1",
+mongoose.connect(mongouri,
+  { useNewUrlParser: true, useUnifiedTopology: true }, err => {
+      console.log('connected to MongoDB')
+  });
+
+ //Image is a model which has a schema imageSchema
+var storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, 'uploads')
+      console.log("storage....")
+  },
+  filename: (req, file, cb) => {
+      cb(null, file.fieldname + '-' + Date.now()+'.jpg')
+  }
+});
+//refers to the models.js for Schema
+var imgModel = require('./models');
+//refers to storage var 
+var upload = multer({ storage: storage });
+
+// app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'html');
+// imgModel.find gets all the images from cluster
+app.get('/', (req, res) => {
+  imgModel.find({}, (err, items) => {
+      if (err) {
+          console.log(err);
+          res.status(500).send('An error occurred', err);
+      }
+      else {
+          res.render('ImagesPages.ejs', { items: items });
+          console.log("images",items[0],'imagemod:',imgModel)
+      }
+  });
 });
 
-// Initialize multers3 with our s3 config and other options
-const upload = multer({
-  storage: multerS3({
-    s3,
-    bucket: process.env.AWS_BUCKET,
-    acl: 'public-read',
-    metadata(req, file, cb) {
-      cb(null, {fieldName: file.fieldname});
-    },
-    key(req, file, cb) {
-      cb(null, Date.now().toString() + '.png');
-    }
-  })
-})
-
-// Expose the /upload endpoint
-const app = require('express')();
-const http = require('http').Server(app);
-
-app.post('/upload', upload.single('photo'), (req, res, next) => {
-  res.json(req.file)
-})
-
-let port = process.env.PORT || 3000;
-http.listen(port, () => {
-  console.log(`Listening on port ${port}`);
+app.post('/', upload.single('image'), (req, res, next) => {
+ 
+  var obj = {
+      name: req.body.name,
+      desc: req.body.desc,
+      img: {
+          data: fs.readFileSync(path.join(__dirname + '/uploads/' + req.file.filename)),
+          contentType: 'image/png'
+      }
+  }
+  imgModel.create(obj, (err, item) => {
+      if (err) {
+          console.log(err);
+      }
+      else {
+          // item.save();
+          console.log("Redirecting...")
+          res.redirect('/');
+      }
+  });
 });
+
+var port = process.env.PORT || '3000'
+app.listen(port, err => {
+    if (err)
+        throw err
+    console.log('Server listening on port', port)
+})
+
+

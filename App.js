@@ -1,4 +1,11 @@
 import * as React from "react";
+// import * as mongoose from "mongoose";
+// import mongoose from "mongoose";
+// import { connect } from 'mongoose';
+// const mongoose = require('mongoose')
+const mongoose = require('mongoose');
+const express = require('express')
+const app = express()
 import {
   ActivityIndicator,
   Button,
@@ -11,6 +18,12 @@ import {
 import * as Clipboard from "expo-clipboard";
 import * as ImagePicker from "expo-image-picker";
 
+const mongouri = "mongodb+srv://msritop123:msritop123@rit-dataset.ypq0r.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+
+mongoose.connect(mongouri,
+  { useNewUrlParser: true, useUnifiedTopology: true }, err => {
+      console.log('connected to MongoDB')
+  });
 export default class App extends React.Component {
   state = {
     image: null,
@@ -19,18 +32,30 @@ export default class App extends React.Component {
 
   render() {
     return (
+      
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        
+        <View style={{ 
+            
+            alignSelf: 'flex-start',
+            marginTop: -400,
+            position: 'absolute'
+         }}>
+        <Image source={require('./check.jpg')}
+       style={{width: 300, height: 150,resizeMode: 'stretch'}} />
+        </View>
+       
         <Text
           style={{
-            fontSize: 20,
-            marginBottom: 20,
+            fontSize: 30,
+            marginBottom: 30,
             textAlign: "center",
             marginHorizontal: 15,
           }}
         >
-          Example: Upload ImagePicker result
+          Kannada Dataset Collection 
         </Text>
-
+       
         {this._maybeRenderControls()}
         {this._maybeRenderUploadingIndicator()}
         {this._maybeRenderImage()}
@@ -53,7 +78,7 @@ export default class App extends React.Component {
           <View style={{ marginVertical: 8 }}>
             <Button
               onPress={this._pickImage}
-              title="Pick an image from camera roll"
+              title="Pick from Gallery"
             />
           </View>
           <View style={{ marginVertical: 8 }}>
@@ -86,6 +111,8 @@ export default class App extends React.Component {
               overflow: "hidden",
             }}
           >
+            
+            
             <Image
               source={{ uri: this.state.image }}
               style={{ width: 250, height: 250 }}
@@ -179,9 +206,15 @@ export default class App extends React.Component {
   };
 }
 
+
 async function uploadImageAsync(uri) {
-  let apiUrl =
-    "https://file-upload-example-backend-dkhqoilqqn.vercel.app/upload";
+  
+  // const connectdatabase = require('./database')
+  // connectdatabase();
+  console.log(uri)
+  var imgModel = require('./models');
+  imgModel.create(uri)
+
 
   // Note:
   // Uncomment this if you want to experiment with local server
@@ -191,25 +224,5 @@ async function uploadImageAsync(uri) {
   // } else {
   //   apiUrl = `http://localhost:3000/upload`
   // }
-  let uriArray = uri.split(".");
-  let fileType = uriArray[uriArray.length - 1];
-
-  let formData = new FormData();
-  formData.append("photo", {
-    uri,
-    name: `photo.${fileType}`,
-    type: `image/${fileType}`,
-  });
-
-  let options = {
-    method: "POST",
-    body: formData,
-    mode: 'cors',
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "multipart/form-data",
-    },
-  };
-
-  return fetch(apiUrl, options);
+  
 }
